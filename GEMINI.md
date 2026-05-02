@@ -11,10 +11,10 @@ When a user provides a YouTube URL, you must:
 ## Tools
 ### `get_youtube_transcript`
 **Usage:** `py scripts/get_transcript.py <VIDEO_ID_OR_URL> [LANG_CODE]`
-**Output:** Video metadata followed by a transcript snippet and a `FULL_FILE_PATH`.
+**Output:** Video metadata followed by the full timestamped transcript.
 
 ## Guidelines
-- **Large Transcripts:** If the video is long, the script will output a `FULL_FILE_PATH`. You **MUST** use the `read_file` tool on that path to retrieve the full content for analysis. Do not rely on the console snippet for long-form summarization.
+- **Large Content:** For extremely long videos, the CLI might truncate the console output. If you notice a truncation warning or missing sections, check the `FILE_BACKUP` path provided in the output using the `read_file` tool to ensure you have the complete dataset.
 - **Privacy:** Do not store transcripts permanently unless requested.
 - **Context:** Use the extracted Title and Channel to better understand the overall context before analyzing the transcript.
 - **Timestamps:** When answering specific questions or summarizing key moments, always include the `[MM:SS]` timestamps provided in the transcript to help the user navigate to those moments.

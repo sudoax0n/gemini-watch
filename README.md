@@ -10,6 +10,8 @@ Instead of relying on heavy MCP servers or complex setups, `gemini-watch` provid
 
 ## ✨ Features
 * **Zero-Friction:** No API keys required. No complex server configuration.
+* **Titanium Parser:** Flawlessly extracts IDs from any format—Shorts, mobile links, or query-heavy URLs.
+* **Smart Caching:** Automatically caches massive transcripts locally to bypass console truncation, then self-cleans files older than 7 days to prevent disk bloat.
 * **Timestamps:** Automatically formats transcripts with `[MM:SS]` timestamps so the agent can point you to the exact moment a topic was discussed.
 * **Metadata Extraction:** Natively extracts the Video Title and Channel Name to provide immediate context before analyzing the transcript.
 * **Auto-Installing Dependencies:** The underlying script automatically installs the necessary Python libraries (`youtube-transcript-api`) on its first run if they are missing.

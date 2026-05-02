@@ -1,6 +1,6 @@
 {
   "name": "gemini-watch",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Native YouTube transcription and summarization extension for Gemini CLI.",
   "author": "sudoax0n",
   "license": "MIT",
