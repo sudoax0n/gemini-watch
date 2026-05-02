@@ -2,6 +2,7 @@ import sys
 import subprocess
 import urllib.request
 import re
+import os
 
 def install_dependencies():
     try:
@@ -90,9 +91,29 @@ if __name__ == "__main__":
     metadata = get_video_metadata(video_id)
     transcript_text = get_transcript(video_id, lang)
     
+    # Save full transcript to a file to prevent truncation issues
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    transcripts_dir = os.path.join(os.path.dirname(script_dir), "transcripts")
+    if not os.path.exists(transcripts_dir):
+        os.makedirs(transcripts_dir)
+    
+    file_path = os.path.join(transcripts_dir, f"{video_id}.txt")
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(f"TITLE: {metadata['title']}\n")
+        f.write(f"CHANNEL: {metadata['channel']}\n")
+        f.write(f"LANGUAGE: {lang.upper()}\n")
+        f.write("-" * 20 + "\n")
+        f.write(transcript_text)
+    
     print(f"--- VIDEO METADATA ---")
     print(f"Title: {metadata['title']}")
     print(f"Channel: {metadata['channel']}")
     print(f"Language: {lang.upper()}")
-    print(f"--- TRANSCRIPT ---")
-    print(transcript_text)
+    print(f"FULL_FILE_PATH: {file_path}")
+    print(f"--- TRANSCRIPT (SNIPPET) ---")
+    # Only print first 50 lines to console to avoid truncation warnings
+    lines = transcript_text.split("\n")
+    print("\n".join(lines[:50]))
+    if len(lines) > 50:
+        print(f"\n... [{len(lines) - 50} lines omitted].")
+        print(f"CRITICAL: Use 'read_file' on the FULL_FILE_PATH above to see the entire transcript.")

@@ -11,9 +11,10 @@ When a user provides a YouTube URL, you must:
 ## Tools
 ### `get_youtube_transcript`
 **Usage:** `py scripts/get_transcript.py <VIDEO_ID_OR_URL> [LANG_CODE]`
-**Output:** Video metadata (Title, Channel) followed by a timestamped transcript or an error message.
+**Output:** Video metadata followed by a transcript snippet and a `FULL_FILE_PATH`.
 
 ## Guidelines
+- **Large Transcripts:** If the video is long, the script will output a `FULL_FILE_PATH`. You **MUST** use the `read_file` tool on that path to retrieve the full content for analysis. Do not rely on the console snippet for long-form summarization.
 - **Privacy:** Do not store transcripts permanently unless requested.
 - **Context:** Use the extracted Title and Channel to better understand the overall context before analyzing the transcript.
 - **Timestamps:** When answering specific questions or summarizing key moments, always include the `[MM:SS]` timestamps provided in the transcript to help the user navigate to those moments.
@@ -26,3 +27,11 @@ Agent Strategy:
 2. Run `py scripts/get_transcript.py dQw4w9WgXcQ`
 3. Read the output. Note the title and channel.
 4. Process the text and provide the summary, referencing key timestamps.
+
+## Known Issues
+- **Transcript Truncation:** For long videos (>20 mins), the CLI's console output may be truncated, causing the agent to miss the middle content. 
+
+## Roadmap
+- [x] **Large Transcript Handling:** Update the engine to save full transcripts to a local file and provide the path to the agent for direct reading.
+- [ ] **Playlist Support:** Add the ability to fetch transcripts for all videos in a YouTube playlist.
+- [ ] **Language Targeting:** Improve native support for specifying target translation languages.
