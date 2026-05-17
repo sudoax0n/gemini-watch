@@ -241,30 +241,19 @@ def cmd_check() -> int:
     Exit 0 with no output when ready. On failure, print one actionable line
     to stderr and return:
       2 → binaries missing
-      3 → API key missing
-      4 → both missing
     """
     s = _status()
-    if s["status"] == "ready":
+    if not s["missing_binaries"]:
         return 0
 
-    parts = []
-    if s["missing_binaries"]:
-        parts.append(f"missing binaries: {', '.join(s['missing_binaries'])}")
-    if not s["has_api_key"]:
-        parts.append("no Whisper API key (GROQ_API_KEY or OPENAI_API_KEY)")
     installer = Path(__file__).resolve()
     sys.stderr.write(
-        f"[gemini-watch] setup incomplete ({'; '.join(parts)}). "
+        f"[gemini-watch] setup incomplete (missing binaries: {', '.join(s['missing_binaries'])}). "
         f"Run: python3 {installer}\n"
     )
     sys.stderr.flush()
 
-    if s["missing_binaries"] and not s["has_api_key"]:
-        return 4
-    if s["missing_binaries"]:
-        return 2
-    return 3
+    return 2
 
 
 def cmd_json() -> int:
@@ -277,6 +266,9 @@ def cmd_install() -> int:
     missing = _check_binaries()
     installed_deps = False
     if missing:
+        system = platform.system()
+        # ... (brew/winget logic)
+        # Wait, I should keep the rest of cmd_install but remove the mandatory key prompt
         system = platform.system()
         if system == "Darwin":
             ok, msg = _install_macos(missing)

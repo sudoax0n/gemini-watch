@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-05-17
+### Added
+- **Native Multimodal Audio**: Migrated transcription fallback from Whisper API to Gemini-native audio processing. The extension now extracts audio and provides it directly to the model when captions are missing.
+- **Sandbox Compatibility**: Updated working directory logic to respect `GEMINI_PROJECT_TMP`, ensuring frames and audio are accessible within the agent's sandbox.
+
+### Changed
+- **Simplified Setup**: Removed mandatory Whisper API key requirements. `setup.py` now passes as long as system binaries are present.
+- **Improved Instructions**: Rewrote `GEMINI.md` to guide the agent on parallel multimodal reading (visuals + audio).
+
 ## [2.0.0] - 2026-05-17
 ### Added
 - **Multimodal Video Capabilities**: Automatically extracts auto-scaled JPEG frames using `ffmpeg` to give the Gemini CLI native "eyes" to watch video files.

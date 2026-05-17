@@ -28,12 +28,16 @@ py scripts/watch.py "<source>"
 * `--no-whisper` — Disable Whisper fallback.
 * `--whisper groq|openai` — Force a specific backend.
 
-## Step 3 — Read the Frames
-The watch script outputs a list of JPEG frame paths with timestamps (e.g. `t=01:23`).
-**Use the `read_file` tool to read all of these JPEGs in parallel.** Since the files are JPEGs, the CLI will natively encode them as visual data and deliver them to your multimodal context window. Do not omit any frames; you must see the video to answer grounded questions.
+## Step 3 — Read the Frames & Audio
+The watch script outputs a list of JPEG frame paths and an optional audio file path.
+**Use the `read_file` tool to read all of these JPEGs and the audio file in parallel.** 
+* **Visuals:** Reading JPEGs allows you to see the video content natively.
+* **Audio:** If a transcript is missing but an `audio.mp3` file is provided, read it natively to listen or transcribe the content yourself.
+
+Do not omit any frames or the audio file; you must see and hear the video to answer grounded questions.
 
 ## Step 4 — Answer the User
-Answer the user's questions or summarize the video, combining the visual evidence from the frames (using their timestamps) and the timestamped transcript. Point the user to exact moments using `[MM:SS]` timestamps.
+Answer the user's questions or summarize the video, combining the visual evidence from the frames (using their timestamps) and the audio/transcript. Point the user to exact moments using `[MM:SS]` timestamps.
 
 ## Step 5 — Clean Up
 The script prints the working directory at the end: `Work dir: <path>`. If the user is done with their queries and won't ask follow-ups, delete it using `Remove-Item -Recurse -Force "<path>"` (or `rm -rf "<path>"` if in a POSIX shell).

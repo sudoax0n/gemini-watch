@@ -1,6 +1,6 @@
 {
   "name": "gemini-watch",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Native multimodal video extension for Gemini CLI. Downloads video, extracts auto-scaled frames, transcribes via captions or Whisper, and provides visual+text context.",
   "author": "sudoax0n",
   "license": "MIT",

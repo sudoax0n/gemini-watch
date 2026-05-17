@@ -66,7 +66,14 @@ def main() -> int:
     if args.out_dir:
         work = Path(args.out_dir).expanduser().resolve()
     else:
-        work = Path(tempfile.mkdtemp(prefix="gemini-watch-"))
+        # Prefer Gemini project temp dir if available (helps with sandbox)
+        project_tmp = os.environ.get("GEMINI_PROJECT_TMP")
+        if project_tmp:
+            base_tmp = Path(project_tmp)
+            base_tmp.mkdir(parents=True, exist_ok=True)
+            work = Path(tempfile.mkdtemp(prefix="gemini-watch-", dir=str(base_tmp)))
+        else:
+            work = Path(tempfile.mkdtemp(prefix="gemini-watch-"))
     work.mkdir(parents=True, exist_ok=True)
     print(f"[gemini-watch] working dir: {work}", file=sys.stderr)
 
@@ -122,6 +129,8 @@ def main() -> int:
     transcript_segments: list[dict] = []
     transcript_text: str | None = None
     transcript_source: str | None = None
+    audio_file_path: Path | None = None
+
     if dl.get("subtitle_path"):
         try:
             all_segments = parse_vtt(dl["subtitle_path"])
@@ -131,32 +140,15 @@ def main() -> int:
         except Exception as exc:
             print(f"[gemini-watch] subtitle parse failed: {exc}", file=sys.stderr)
 
-    if not transcript_segments and not args.no_whisper:
-        backend, api_key = load_api_key(args.whisper)
-        if backend and api_key:
-            try:
-                all_segments, used_backend = transcribe_video(
-                    video_path,
-                    work / "audio.mp3",
-                    backend=backend,
-                    api_key=api_key,
-                )
-                transcript_segments = filter_range(all_segments, start_sec, end_sec) if focused else all_segments
-                transcript_text = format_transcript(transcript_segments)
-                transcript_source = f"whisper ({used_backend})"
-            except SystemExit as exc:
-                print(f"[gemini-watch] whisper fallback failed: {exc}", file=sys.stderr)
-        else:
-            hint = (
-                f"--whisper {args.whisper} was set but the matching API key is missing"
-                if args.whisper else
-                "no subtitles and no Whisper API key found"
-            )
-            setup_py = SCRIPT_DIR / "setup.py"
-            print(
-                f"[gemini-watch] {hint} — run `python3 {setup_py}` to enable the Whisper fallback",
-                file=sys.stderr,
-            )
+    # If no captions, extract audio for native model transcription
+    if not transcript_segments:
+        try:
+            from whisper import extract_audio
+            audio_file_path = work / "audio.mp3"
+            extract_audio(video_path, audio_file_path)
+            transcript_source = "native audio"
+        except Exception as exc:
+            print(f"[gemini-watch] audio extraction failed: {exc}", file=sys.stderr)
 
     info = dl.get("info") or {}
 
@@ -179,12 +171,15 @@ def main() -> int:
     mode = "focused" if focused else "full"
     print(f"- **Frames:** {len(frames)} @ {fps:.3f} fps, {mode} mode (budget {target}, max {max_frames})")
     print(f"- **Frame size:** {args.resolution}px wide")
+    
     if transcript_segments:
         in_range = " in range" if focused else ""
         print(
             f"- **Transcript:** {len(transcript_segments)} segments{in_range} "
             f"(via {transcript_source or 'captions'})"
         )
+    elif audio_file_path:
+        print(f"- **Transcript:** none (native audio provided for model transcription)")
     else:
         print("- **Transcript:** none available")
 
@@ -198,17 +193,25 @@ def main() -> int:
         )
 
     print()
-    print("## Frames")
+    print("## Visuals (Frames)")
     print()
     print(f"Frames live at: `{work / 'frames'}`")
     print()
     print(
-        "**Read each frame path below with the read_file tool to view the image.** "
+        "**Read each frame path below with the read_file tool to view the images.** "
         "Frames are in chronological order; `t=MM:SS` is the absolute timestamp in the source video."
     )
     print()
     for frame in frames:
         print(f"- `{frame['path']}` (t={format_time(frame['timestamp_seconds'])})")
+
+    if audio_file_path:
+        print()
+        print("## Audio")
+        print()
+        print(f"**Read this audio file with the read_file tool to listen or transcribe natively:**")
+        print()
+        print(f"- `{audio_file_path}`")
 
     print()
     print("## Transcript")
@@ -225,14 +228,10 @@ def main() -> int:
         print("```")
     elif focused and dl.get("subtitle_path"):
         print(f"_No transcript lines fell inside {format_time(effective_start)} → {format_time(effective_end)}._")
+    elif audio_file_path:
+        print("_No captions found. Please use the provided audio file for native transcription._")
     else:
-        setup_py = SCRIPT_DIR / "setup.py"
-        print(
-            "_No transcript available — proceed with frames only. "
-            "Captions were missing and the Whisper fallback was unavailable "
-            "(no API key set, or `--no-whisper` was used). "
-            f"Run `python3 {setup_py}` to enable Whisper, then re-run._"
-        )
+        print("_No transcript or audio available._")
 
     print()
     print("---")
