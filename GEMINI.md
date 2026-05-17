@@ -1,37 +1,43 @@
 # Gemini Watch Extension
 
-This extension allows Gemini CLI to "watch" YouTube videos by extracting transcripts, timestamps, and metadata natively.
+This extension gives Gemini CLI "eyes" to watch video inputs (URLs or local paths) natively. It downloads videos with `yt-dlp`, extracts frames with `ffmpeg`, and transcribes audio via captions or Whisper. It then presents these frames and transcripts so you can analyze the video.
 
-## Core Mandate
-When a user provides a YouTube URL, you must:
-1. Extract the Video ID.
-2. Run the `get_transcript.py` script to fetch the metadata and timestamped text content.
-3. Summarize or analyze the content as requested.
+## Step 0 — Setup preflight (runs every invocation)
+Before running `/gemini-watch`, verify dependencies and API keys:
+```bash
+py scripts/setup.py --check
+```
+* **Exit 0 (Success):** Proceed to Step 1 silently (do not announce setup is complete).
+* **Exit 2 (Missing binaries like ffmpeg, ffprobe, yt-dlp):** Instruct the user to run the installer: `py scripts/setup.py`.
+* **Exit 3 (Missing Whisper key):** Run the installer to scaffold the dotenv file, then ask the user for a **Groq API Key** (preferred — console.groq.com/keys) or **OpenAI API Key** (platform.openai.com/api-keys) and write it into `~/.config/gemini-watch/.env` as `GROQ_API_KEY=...` or `OPENAI_API_KEY=...`.
+* **Exit 4 (Both missing):** Run the installer, then ask the user for a key.
 
-## Tools
-### `get_youtube_transcript`
-**Usage:** `py scripts/get_transcript.py <VIDEO_ID_OR_URL> [LANG_CODE]`
-**Output:** Video metadata followed by the full timestamped transcript.
+## Step 1 — Parse Input
+Separate the video source (URL or path) from the user's question.
 
-## Guidelines
-- **Large Content:** For extremely long videos, the CLI might truncate the console output. If you notice a truncation warning or missing sections, check the `FILE_BACKUP` path provided in the output using the `read_file` tool to ensure you have the complete dataset.
-- **Privacy:** Do not store transcripts permanently unless requested.
-- **Context:** Use the extracted Title and Channel to better understand the overall context before analyzing the transcript.
-- **Timestamps:** When answering specific questions or summarizing key moments, always include the `[MM:SS]` timestamps provided in the transcript to help the user navigate to those moments.
-- **Language:** If the user asks for a summary of a video in a specific language, you can pass the 2-letter language code (e.g. `es`, `fr`) as an optional second argument to the script to attempt to fetch a translated transcript.
+## Step 2 — Run the Watch Script
+Invoke the watch script passing the source verbatim:
+```bash
+py scripts/watch.py "<source>"
+```
 
-## Example
-User: "Summarize this video: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-Agent Strategy:
-1. ID = `dQw4w9WgXcQ`
-2. Run `py scripts/get_transcript.py dQw4w9WgXcQ`
-3. Read the output. Note the title and channel.
-4. Process the text and provide the summary, referencing key timestamps.
+### Useful Flags:
+* `--start T` / `--end T` — Zoom into a section. Accepts `SS`, `MM:SS`, or `HH:MM:SS`. Auto-fps will scale denser for focused sections.
+* `--max-frames N` — Lower the cap for a tighter token budget (default 80, max 100).
+* `--resolution W` — Frame width in pixels (default 512; increase to 1024 only if reading small on-screen text).
+* `--no-whisper` — Disable Whisper fallback.
+* `--whisper groq|openai` — Force a specific backend.
 
-## Known Issues
-- **Transcript Truncation:** For long videos (>20 mins), the CLI's console output may be truncated, causing the agent to miss the middle content. 
+## Step 3 — Read the Frames
+The watch script outputs a list of JPEG frame paths with timestamps (e.g. `t=01:23`).
+**Use the `read_file` tool to read all of these JPEGs in parallel.** Since the files are JPEGs, the CLI will natively encode them as visual data and deliver them to your multimodal context window. Do not omit any frames; you must see the video to answer grounded questions.
 
-## Roadmap
-- [x] **Large Transcript Handling:** Update the engine to save full transcripts to a local file and provide the path to the agent for direct reading.
-- [ ] **Playlist Support:** Add the ability to fetch transcripts for all videos in a YouTube playlist.
-- [ ] **Language Targeting:** Improve native support for specifying target translation languages.
+## Step 4 — Answer the User
+Answer the user's questions or summarize the video, combining the visual evidence from the frames (using their timestamps) and the timestamped transcript. Point the user to exact moments using `[MM:SS]` timestamps.
+
+## Step 5 — Clean Up
+The script prints the working directory at the end: `Work dir: <path>`. If the user is done with their queries and won't ask follow-ups, delete it using `Remove-Item -Recurse -Force "<path>"` (or `rm -rf "<path>"` if in a POSIX shell).
+
+## Recommended limits
+* Target videos under 10 minutes for optimal accuracy.
+* For long videos (>10 mins), the coverage is sparse. Offer the user to run focused with `--start` and `--end` to target the exact section they care about.

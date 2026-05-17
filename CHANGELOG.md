@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-05-17
+### Added
+- **Multimodal Video Capabilities**: Automatically extracts auto-scaled JPEG frames using `ffmpeg` to give the Gemini CLI native "eyes" to watch video files.
+- **Multi-Platform Support**: Replaced the YouTube-only parser with `yt-dlp`, allowing you to analyze video links from YouTube, Vimeo, TikTok, Twitch, Twitter/X, and more, as well as local video files (`.mp4`, `.mov`, etc.).
+- **Smart Transcription Fallbacks**: Pulls native captions first. If captions are unavailable, it converts the audio track and transcribes it via the Whisper API (supporting Groq for ultra-fast, cheap transcriptions, and OpenAI as a fallback).
+- **Interactive Setup Wizard**: Added `scripts/setup.py` to seamlessly scaffold configuration files and preflight check missing dependencies in a single command.
+- **Windows Integration Fallbacks**: Automatically maps local Python Scripts directory paths at runtime on Windows, preventing path-not-found issues with `yt-dlp` or `ffmpeg`.
+
+### Changed
+- Replaced the `youtube-transcript-api` python package with standard-library Python scripts and system binaries, resulting in **zero** external pip dependencies.
+- Completely rewrote `GEMINI.md` to instruct the Gemini agent on how to use `read_file` to load the JPEGs in parallel into its multimodal context.
+
 ## [1.1.0] - 2026-05-02
 ### Added
 - **Titanium Parser**: Robust Regex engine to flawlessly extract video IDs from any URL format (Shorts, mobile links, query parameters).

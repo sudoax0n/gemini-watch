@@ -4,28 +4,37 @@
 
 # Gemini Watch 👁️
 
-**Gemini Watch** is a native, ultra-lightweight extension for the [Gemini CLI](https://github.com/google-gemini/gemini-cli) that gives the agent "eyes" to watch YouTube videos. 
+**Gemini Watch** is a native, multimodal extension for the [Gemini CLI](https://github.com/google-gemini/gemini-cli) that gives the agent "eyes" to watch videos from YouTube, Vimeo, TikTok, or local files.
 
-Instead of relying on heavy MCP servers or complex setups, `gemini-watch` provides a simple, zero-friction script that allows the CLI to instantly fetch video transcripts, timestamps, and metadata so it can summarize, analyze, and discuss YouTube content with you.
+Instead of relying on heavy MCP servers or complex setups, `gemini-watch` provides a highly optimized pipeline that downloads videos with `yt-dlp`, extracts frames with `ffmpeg`, and transcribes audio (captions or Whisper API fallback). The Gemini CLI then natively loads these visual and textual cues directly into its multimodal context window to answer any question about the video.
 
 ## ✨ Features
-* **Zero-Friction:** No API keys required. No complex server configuration.
-* **Titanium Parser:** Flawlessly extracts IDs from any format—Shorts, mobile links, or query-heavy URLs.
-* **Smart Caching:** Automatically caches massive transcripts locally to bypass console truncation, then self-cleans files older than 7 days to prevent disk bloat.
-* **Timestamps:** Automatically formats transcripts with `[MM:SS]` timestamps so the agent can point you to the exact moment a topic was discussed.
-* **Metadata Extraction:** Natively extracts the Video Title and Channel Name to provide immediate context before analyzing the transcript.
-* **Auto-Installing Dependencies:** The underlying script automatically installs the necessary Python libraries (`youtube-transcript-api`) on its first run if they are missing.
-* **Native Feel:** Designed purely via the `GEMINI.md` instruction model, making it incredibly fast and integrated natively into the agent's workflow.
+* **Multimodal Visual Inputs:** Automatically extracts auto-scaled video frames at a duration-aware FPS and reads them natively via the CLI's `read_file` tool to utilize Gemini's massive visual context window.
+* **Multi-Platform Support:** Works flawlessly with YouTube, Vimeo, TikTok, Twitter/X, Twitch, and most `yt-dlp` compatible websites, as well as local video files (`.mp4`, `.mov`, `.mkv`, etc.).
+* **Smart Audio Transcription:** Automatically pulls native or auto-generated captions first. If unavailable, it falls back to transcribing a lightweight mono audio track via Groq (preferred Whisper API backend, extremely fast/cheap) or OpenAI's Whisper API.
+* **Denser Focused Zoom:** Supports focusing on specific timestamps (e.g. `--start 01:00 --end 01:30`) to extract frames at a higher density for detailed analysis of brief moments.
+* **Pure Python Standard Library:** Requires **zero** external Python packages (no pip installs needed outside standard tools).
+* **Setup Wizard:** Includes a built-in preflight checker (`setup.py`) to scaffold your API key config and detect missing binaries in one command.
 
 ## 🛠️ Prerequisites
 
-To use this extension, you must have **Python** installed on your system, as the transcript engine is powered by a Python script.
+To use this extension, you must have **Python 3**, **FFmpeg**, and **yt-dlp** installed on your system.
 
-1. Ensure Python 3 is installed and accessible from your terminal (`python` or `py` on Windows).
-2. The script will automatically install `youtube-transcript-api` via `pip`, but you can install it manually if you prefer:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Install Dependencies:
+* **macOS:**
+  ```bash
+  brew install ffmpeg yt-dlp
+  ```
+* **Windows (via Winget):**
+  ```bash
+  winget install Gyan.FFmpeg
+  winget install yt-dlp.yt-dlp
+  ```
+* **Linux:**
+  ```bash
+  sudo apt install ffmpeg
+  ```
+  (And install `yt-dlp` via your package manager or pipx)
 
 ## 📦 Installation
 
@@ -40,25 +49,44 @@ gemini extensions install https://github.com/sudoax0n/gemini-watch
 gemini extensions link ./gemini-watch
 ```
 
-## 🚀 Usage
+## 🚀 Setup & Config
 
-Once installed, simply drop a YouTube link into your Gemini CLI session and ask it a question!
+Once installed, run the setup wizard to scaffold your environment and configuration files:
+
+```bash
+py scripts/setup.py
+```
+
+This creates a configuration directory at `~/.config/gemini-watch/` with a `.env` file. Open the file to add a Groq (preferred) or OpenAI API key to enable Whisper audio transcription fallback for videos that don't have native captions.
+
+## 💻 Usage
+
+Drop a video link or local file path into your Gemini CLI session and ask it a question!
 
 **Example Prompts:**
-* *"Summarize this video: https://www.youtube.com/watch?v=dQw4w9WgXcQ"*
-* *"Extract the key takeaways from this lecture: [URL]"*
-* *"At what timestamp did they talk about 'React 19' in this video? [URL]"*
+* *"What is happening in this video? [URL]"*
+* *"Explain what the speaker is demonstrating at timestamp 02:40: [URL]"*
+* *"Analyze the slide shown at the beginning of my local presentation: C:\Users\me\presentation.mp4"*
 
-<p align="center">
-  <img src="public/assets/terminal.png" width="100%" alt="Gemini Watch Terminal Output" />
-</p>
+### CLI Commands (for development or direct execution):
+```bash
+# Check if binaries and config are ready
+py scripts/setup.py --check
+
+# Watch a video (URL or local file)
+py scripts/watch.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+# Watch a focused section of a local file
+py scripts/watch.py "C:\Users\me\clip.mp4" --start 00:30 --end 01:00
+```
 
 ## 🧠 How it Works
-1. When you provide a YouTube URL, the Gemini CLI agent reads the `GEMINI.md` instructions.
-2. It extracts the Video ID from your URL.
-3. It executes the `scripts/get_transcript.py` tool.
-4. The script fetches the Title, Channel, and Timestamped Transcript.
-5. The agent uses its massive context window to synthesize and answer your query.
+1. When you ask Gemini CLI about a video, the agent reads `GEMINI.md`.
+2. It executes `scripts/watch.py` with your URL/file path (and optional start/end timestamps).
+3. The script downloads the video (if a URL) via `yt-dlp` and uses `ffmpeg` to extract auto-scaled JPEG frames.
+4. It fetches captions or falls back to extracting audio and calling the Whisper API.
+5. The script outputs a markdown report listing JPEGs and text transcription.
+6. The Gemini agent uses the `read_file` tool to load all frames in parallel into its multimodal context, allowing it to "watch" the video and synthesize a precise answer.
 
 ## 🤝 Socials
 Follow me for more Gemini CLI tools and hacks:
@@ -67,4 +95,3 @@ Follow me for more Gemini CLI tools and hacks:
 
 ## License
 [MIT License](LICENSE)
-
